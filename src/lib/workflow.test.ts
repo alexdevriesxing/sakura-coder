@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { WORKFLOW_REGISTRY, getWorkflowProfile, getWorkflowIds } from '../workflows';
 
 describe('workflow registry', () => {
-  it('has all 7 workflow profiles', () => {
+  it('has all 9 workflow profiles', () => {
     const ids = getWorkflowIds();
-    expect(ids).toHaveLength(7);
+    expect(ids).toHaveLength(9);
   });
 
   it('includes general-coding workflow', () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Eye, Layout, Image as ImageIcon, Music, Boxes, Play, RefreshCw, Smartphone, Tablet, Monitor, MessageSquarePlus } from 'lucide-react';
 import { useSakuraStore } from '../store/useSakuraStore';
 import { readProjectFile } from '../lib/tauriApi';
@@ -14,7 +14,7 @@ interface Annotation {
 }
 
 export function WorkflowPreview() {
-  const { project, activeWorkflowId, assets, audioAssets, setStatus } = useSakuraStore();
+  const { project, activeWorkflowId, assets, audioAssets, setStatus, addVisualAnnotation } = useSakuraStore();
   const [activeTab, setActiveTab] = useState<PreviewTab>('layout');
   const [viewport, setViewport] = useState<ViewportSize>('desktop');
   const [isAnnotating, setIsAnnotating] = useState(false);
@@ -23,13 +23,7 @@ export function WorkflowPreview() {
   const [loading, setLoading] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  useEffect(() => {
-    if (activeTab === 'layout' && project) {
-      loadLayoutPreview();
-    }
-  }, [activeTab, project]);
-
-  const loadLayoutPreview = async () => {
+  const loadLayoutPreview = useCallback(async () => {
     if (!project) return;
     setLoading(true);
     try {
@@ -44,7 +38,13 @@ export function WorkflowPreview() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [project, setStatus]);
+
+  useEffect(() => {
+    if (activeTab === 'layout' && project) {
+      loadLayoutPreview();
+    }
+  }, [activeTab, project, loadLayoutPreview]);
 
   const handlePreviewClick = (e: React.MouseEvent) => {
     if (!isAnnotating || !iframeRef.current) return;
@@ -56,6 +56,7 @@ export function WorkflowPreview() {
     if (text) {
       const newAnnotation = { id: Date.now().toString(), x, y, text };
       setAnnotations([...annotations, newAnnotation]);
+      addVisualAnnotation(newAnnotation);
       setStatus(`Annotation added: "${text}". Agent will prioritize this area in next pass.`);
     }
   };
@@ -139,6 +140,7 @@ export function WorkflowPreview() {
                     ref={iframeRef}
                     title="Layout Preview"
                     srcDoc={htmlContent}
+                    sandbox="allow-scripts allow-forms allow-pointer-lock allow-popups"
                     style={{ width: '100%', height: '100%', border: 'none', background: '#fff', pointerEvents: isAnnotating ? 'none' : 'auto' }}
                   />
                   {/* Annotations Layer */}

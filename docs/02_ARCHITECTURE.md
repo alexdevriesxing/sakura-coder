@@ -8,6 +8,7 @@
 - State: Zustand
 - Backend: Rust Tauri commands
 - AI providers: Cloudflare Workers
+- LLM routing: OpenRouter free models -> Cloudflare Workers AI Gateway
 - Storage: local filesystem
 
 ## Frontend Modules
@@ -59,3 +60,14 @@ live mode: calls Cloudflare Workers
 ```
 
 Antigravity must adapt schemas after inspecting your actual Worker payload formats.
+
+The Qwen Worker now returns Sakura route metadata:
+
+```txt
+_sakura.providerUsed
+_sakura.modelUsed
+_sakura.quotaStatus
+_sakura.waterfallAttempts
+```
+
+Streaming responses mirror the route summary with `X-Sakura-*` headers.

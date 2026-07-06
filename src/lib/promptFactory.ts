@@ -1,6 +1,7 @@
 import { WORKSPACE_RULES } from '../data/guardrails';
 import { getModeDefinition } from '../data/modes';
 import { WORKFLOW_REGISTRY } from '../workflows';
+import { createAgentToolInstructions } from './agentTools';
 import type { SakuraMode, SakuraProject, WorkflowId, WorkflowProfile, ImageAssetType, AudioAudioType } from '../types/sakura';
 
 export function createSystemPrompt(mode: SakuraMode, project?: SakuraProject | null, workflowId?: WorkflowId | null): string {
@@ -43,6 +44,8 @@ export function createSystemPrompt(mode: SakuraMode, project?: SakuraProject | n
     '- For code generation, prefer small patches over giant rewrites.',
     '- For asset generation, produce original non-infringing prompts with negative prompts.',
     '',
+    createAgentToolInstructions(),
+    '',
     'RESPONSE FORMAT FOR IMPLEMENTATION TASKS:',
     '1. Summary',
     '2. Assumptions',
@@ -75,11 +78,11 @@ export function createWorkflowAssetPrompt(input: {
   const template = workflow?.imagePromptTemplate || 'Create an original {{assetType}} for {{projectName}}. Subject: {{subject}}. Style: {{style}}.';
   const prompt = template
     .replace(/\{\{projectName\}\}/g, input.projectName)
-    .replace(/\{\{assetType\}\}/g, input.assetType)
+    .replace(/\{\{assetType\}\}/g, assetTypeDef?.description || input.assetType)
     .replace(/\{\{subject\}\}/g, input.subject)
     .replace(/\{\{style\}\}/g, input.style || 'clean, professional');
 
-  const negativeTemplate = workflow?.imageNegativePromptTemplate || workflow?.imageNegativePromptTemplate || '';
+  const negativeTemplate = workflow?.imageNegativePromptTemplate || '';
   const negativePrompt = negativeTemplate
     .replace(/\{\{projectName\}\}/g, input.projectName)
     .replace(/\{\{assetType\}\}/g, input.assetType);
@@ -87,7 +90,7 @@ export function createWorkflowAssetPrompt(input: {
   return {
     filename: `${filenameBase || 'sakura_asset'}.png`,
     prompt: prompt + (input.constraints ? ` ${input.constraints}` : ''),
-    negativePrompt: negativePrompt || workflow?.imageNegativePromptTemplate || 'copyrighted characters, protected logos, watermark, low quality',
+    negativePrompt: negativePrompt || workflow?.imageNegativePromptTemplate || 'low quality, blurry, distorted',
     outputFolder: assetTypeDef?.outputFolder || workflow?.outputFolders.images || 'assets/generated',
   };
 }
@@ -116,7 +119,7 @@ export function createWorkflowAudioPrompt(input: {
   const template = workflow?.audioPromptTemplate || 'Create original {{audioType}} for {{projectName}}. Mood: {{mood}}. Duration: {{duration}}s. {{style}}.';
   const prompt = template
     .replace(/\{\{projectName\}\}/g, input.projectName)
-    .replace(/\{\{audioType\}\}/g, input.audioType)
+    .replace(/\{\{audioType\}\}/g, audioTypeDef?.description || input.audioType)
     .replace(/\{\{subject\}\}/g, input.subject)
     .replace(/\{\{mood\}\}/g, input.mood || 'calm')
     .replace(/\{\{duration\}\}/g, String(input.duration || audioTypeDef?.defaultDuration || 30))
@@ -130,7 +133,7 @@ export function createWorkflowAudioPrompt(input: {
   return {
     filename: `${filenameBase || 'sakura_audio'}.wav`,
     prompt,
-    negativePrompt: negativePrompt || workflow?.audioNegativePromptTemplate || 'copyrighted melodies, celebrity voices, protected content',
+    negativePrompt: negativePrompt || workflow?.audioNegativePromptTemplate || 'harsh, annoying, low quality',
     outputFolder: audioTypeDef?.outputFolder || workflow?.outputFolders.audio || 'assets/generated/audio',
     duration: input.duration || audioTypeDef?.defaultDuration,
     loop: input.loop ?? audioTypeDef?.loopable ?? false,

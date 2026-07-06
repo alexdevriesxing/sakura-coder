@@ -10,3 +10,5 @@ src-tauri/target
 .sakura-local
 coverage
 *.log
+pnpm-lock.yaml
+rustup-init.exe

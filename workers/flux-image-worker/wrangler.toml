@@ -1,0 +1,16 @@
+name = "flux-image-worker"
+main = "index.ts"
+compatibility_date = "2026-05-02"
+account_id = "899b9544ac8588b5d6e092e081eb4e07"
+
+[ai]
+binding = "AI"
+
+[vars]
+GATEWAY_ID = "code-gen-gateway"
+# Optional deployment hardening:
+# SAKURA_ALLOWED_ORIGINS = "tauri://localhost,http://localhost:1420"
+# SAKURA_MAX_REQUEST_BYTES = "64000"
+#
+# Optional private-worker gate:
+# wrangler secret put SAKURA_WORKER_AUTH_TOKEN

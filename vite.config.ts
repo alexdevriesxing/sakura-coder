@@ -12,4 +12,20 @@ export default defineConfig({
     },
   },
   envPrefix: ['VITE_', 'SAKURA_'],
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) return 'react-vendor';
+            if (id.includes('lucide-react')) return 'lucide-vendor';
+            if (id.includes('@monaco-editor')) return 'monaco-vendor';
+            if (id.includes('react-markdown') || id.includes('remark-gfm')) return 'markdown-vendor';
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
 });

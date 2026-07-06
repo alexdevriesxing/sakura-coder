@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' ipc: http://ipc.localhost; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' asset: http://asset.localhost data: blob:; connect-src 'self' ipc: http://ipc.localhost http://localhost:* ws://localhost:* https://qwen-coder-worker.alexdevriesxing.workers.dev https://flux-image-worker.alexdevriesxing.workers.dev https://minimax-music-worker.alexdevriesxing.workers.dev; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self' http://localhost:*; object-src 'none'; base-uri 'self'"
     }
   },
   "bundle": {

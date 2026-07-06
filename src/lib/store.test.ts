@@ -177,6 +177,7 @@ describe('SakuraStore', () => {
           name: 'Test Project',
           rootPath: '/test/path',
           template: 'blank',
+          workflowId: 'general-coding',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -202,6 +203,38 @@ describe('SakuraStore', () => {
       
       expect(result.current.messages).toHaveLength(1);
       expect(result.current.messages[0].content).toBe('Hello');
+    });
+
+    it('updates message metadata and clears chat', () => {
+      const { result } = renderHook(() => useSakuraStore());
+
+      act(() => {
+        result.current.addMessage({
+          id: 'msg-meta',
+          role: 'assistant',
+          content: '',
+          createdAt: new Date().toISOString(),
+          mode: 'ask',
+        });
+      });
+
+      act(() => {
+        result.current.updateMessage('msg-meta', 'Done', {
+          llm: { providerUsed: 'openrouter', modelUsed: 'qwen/qwen3-coder:free' },
+        });
+      });
+
+      const updated = result.current.messages.find((message) => message.id === 'msg-meta');
+      expect(updated?.metadata?.llm).toEqual({
+        providerUsed: 'openrouter',
+        modelUsed: 'qwen/qwen3-coder:free',
+      });
+
+      act(() => {
+        result.current.clearMessages();
+      });
+
+      expect(result.current.messages).toHaveLength(0);
     });
   });
 });

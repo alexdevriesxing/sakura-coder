@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, File, X, ChevronRight } from 'lucide-react';
 import { useSakuraStore } from '../store/useSakuraStore';
 import { searchProject, readProjectFile } from '../lib/tauriApi';
@@ -8,6 +8,19 @@ export function GlobalSearch() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const performSearch = useCallback(async () => {
+    if (!project) return;
+    setIsSearching(true);
+    try {
+      const data = await searchProject(project.rootPath, query);
+      setResults(data);
+    } catch (error) {
+      setStatus(`Search failed: ${(error as Error).message}`);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [project, query, setStatus]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -19,22 +32,9 @@ export function GlobalSearch() {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query]);
+  }, [query, project, performSearch]);
 
-  const performSearch = async () => {
-    if (!project) return;
-    setIsSearching(true);
-    try {
-      const data = await searchProject(project.rootPath, query);
-      setResults(data);
-    } catch (error) {
-      setStatus(`Search failed: ${(error as Error).message}`);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const openResult = async (res: any) => {
+  const openResult = useCallback(async (res: any) => {
     if (!project) return;
     try {
       const content = await readProjectFile(project.rootPath, res.relativePath);
@@ -46,7 +46,7 @@ export function GlobalSearch() {
     } catch (error) {
       setStatus(`Failed to open file: ${(error as Error).message}`);
     }
-  };
+  }, [project, openFileContent, setStatus]);
 
   return (
     <section className="panel compact-panel" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>

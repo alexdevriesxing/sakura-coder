@@ -18,6 +18,7 @@ export interface SakuraProject {
   name: string;
   rootPath: string;
   template: SakuraProjectTemplate;
+  workflowId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,10 +31,16 @@ export type SakuraProjectTemplate =
   | 'phaser-asset-heavy-game'
   | 'content-website'
   | 'investor-crm'
-  | 'fmcg-database'
+  | 'crm-application'
   | 'nextjs-saas'
   | 'retro-c64'
-  | 'retro-amiga';
+  | 'retro-amiga'
+  | 'python-scripting'
+  | 'chrome-extension'
+  | 'mobile-app-expo'
+  | 'tauri-desktop-app'
+  | 'portfolio-site'
+  | 'shadcn-ui-library';
 
 export interface FileNode {
   name: string;
@@ -44,6 +51,7 @@ export interface FileNode {
 }
 
 export interface OpenFile {
+  name: string;
   absolutePath: string;
   relativePath: string;
   content: string;
@@ -58,6 +66,66 @@ export interface AgentMessage {
   createdAt: string;
   mode: SakuraMode;
   metadata?: Record<string, unknown>;
+}
+
+export interface LlmWaterfallAttempt {
+  provider: 'openrouter' | 'cloudflare' | string;
+  model: string;
+  status: 'skipped' | 'ok' | 'error' | 'quota-exhausted' | string;
+  httpStatus?: number;
+  reason?: string;
+  retryAfter?: string | null;
+  usage?: unknown;
+}
+
+export interface LlmMetadata {
+  providerUsed: string | null;
+  modelUsed: string | null;
+  quotaStatus: 'ok' | 'degraded' | 'exhausted' | 'unknown' | string;
+  usage?: unknown;
+  waterfallAttempts: LlmWaterfallAttempt[];
+}
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'approval_required';
+}
+
+export interface ToolResult {
+  toolName: string;
+  ok: boolean;
+  output: unknown;
+  error?: string | null;
+}
+
+export type AgentToolResult = ToolResult;
+
+export interface AgentStep {
+  id: string;
+  runId: string;
+  kind: 'model' | 'tool_call' | 'tool_result' | 'diff' | 'command' | 'validation' | 'checkpoint' | 'final' | 'error';
+  title: string;
+  detail?: string;
+  toolCall?: ToolCall;
+  toolResult?: ToolResult;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AgentRun {
+  id: string;
+  goal: string;
+  status: 'queued' | 'running' | 'needs_approval' | 'stopped' | 'completed' | 'failed';
+  modelUsed?: string | null;
+  providerUsed?: string | null;
+  quotaStatus?: string;
+  usage?: unknown;
+  waterfallAttempts: LlmWaterfallAttempt[];
+  steps: AgentStep[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DiffApproval {
@@ -101,6 +169,20 @@ export interface AgentRequest {
   systemPrompt?: string;
 }
 
+export interface AudioGenerationRequest {
+  prompt: string;
+  negativePrompt: string;
+  filename: string;
+  audioType: string;
+  duration?: number;
+  loop?: boolean;
+  bpm?: number;
+  key?: string;
+  lyrics?: string;
+  isInstrumental?: boolean;
+  referenceUrl?: string;
+}
+
 export interface AgentResponse {
   kind: 'text' | 'plan' | 'patch' | 'document' | 'asset_prompt' | 'error';
   content: string;
@@ -117,6 +199,7 @@ export interface ProposedFileChange {
   reason: string;
   oldContent?: string;
   newContent?: string;
+  newRelativePath?: string;
   riskLevel: RiskLevel;
 }
 
@@ -152,6 +235,129 @@ export interface TerminalCommandResult {
   stderr: string;
   riskLevel: RiskLevel;
   blocked: boolean;
+}
+
+export interface ProjectFileContent {
+  relativePath: string;
+  content: string;
+  exists: boolean;
+  error?: string | null;
+}
+
+export interface ProjectSearchResult {
+  path: string;
+  relativePath: string;
+  lineNumber: number;
+  lineContent: string;
+}
+
+export interface ProjectContextFile {
+  relativePath: string;
+  content: string;
+  reason: string;
+  truncated: boolean;
+}
+
+export interface ProjectContextBundle {
+  files: ProjectContextFile[];
+  fileTreeSummary: string[];
+  searchResults: ProjectSearchResult[];
+  memory?: unknown;
+  diffSummaries: string[];
+  truncated: boolean;
+  droppedFiles: string[];
+}
+
+export interface VisualAnnotation {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+}
+
+export interface ProjectChangeApplyResult {
+  checkpoint: string;
+  applied: string[];
+}
+
+export interface SemanticIndexEntry {
+  relativePath: string;
+  language: string;
+  symbols: string[];
+  imports: string[];
+  preview: string;
+  lineCount: number;
+  updatedAt: string;
+}
+
+export interface SemanticSearchResult {
+  relativePath: string;
+  score: number;
+  symbols: string[];
+  imports: string[];
+  preview: string;
+}
+
+export interface Diagnostic {
+  source: string;
+  severity: 'error' | 'warning' | 'info' | string;
+  message: string;
+  relativePath?: string | null;
+  lineNumber?: number | null;
+  command?: string | null;
+}
+
+export interface Rule {
+  id: string;
+  scope: string;
+  relativePath: string;
+  content: string;
+  enabled: boolean;
+}
+
+export interface Memory {
+  id: string;
+  content: string;
+  source: string;
+  createdAt: string;
+}
+
+export interface McpServer {
+  id: string;
+  name: string;
+  command: string;
+  args: string[];
+  enabled: boolean;
+  approvalMode: 'always' | 'prompt' | 'never' | string;
+}
+
+export interface GitFileStatus {
+  path: string;
+  status: string;
+}
+
+export interface GitStatus {
+  branch: string;
+  clean: boolean;
+  files: GitFileStatus[];
+}
+
+export interface PreviewSession {
+  id: string;
+  url?: string | null;
+  status: string;
+  notes: string[];
+  screenshotPath?: string | null;
+  createdAt: string;
+}
+
+export interface BackgroundJob {
+  id: string;
+  goal: string;
+  status: 'queued' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled' | string;
+  createdAt: string;
+  updatedAt: string;
+  log: string[];
 }
 
 export interface GeneratedAsset {

@@ -1,0 +1,21 @@
+name = "qwen-coder-worker"
+main = "index.ts"
+compatibility_date = "2026-05-02"
+account_id = "899b9544ac8588b5d6e092e081eb4e07"
+
+[ai]
+binding = "AI"
+
+[vars]
+GATEWAY_ID = "code-gen-gateway"
+OPENROUTER_FREE_MODELS = "qwen/qwen3-coder:free,minimax/minimax-m2.5:free,openai/gpt-oss-120b:free,nvidia/nemotron-3-super-120b-a12b:free,meta-llama/llama-3.3-70b-instruct:free,google/gemma-4-31b-it:free"
+# Optional deployment hardening:
+# SAKURA_ALLOWED_ORIGINS = "tauri://localhost,http://localhost:1420"
+# SAKURA_MAX_REQUEST_BYTES = "256000"
+# SAKURA_MAX_OUTPUT_TOKENS = "8192"
+
+# Optional first-stage free routing:
+# wrangler secret put OPENROUTER_API_KEY
+#
+# Optional private-worker gate:
+# wrangler secret put SAKURA_WORKER_AUTH_TOKEN

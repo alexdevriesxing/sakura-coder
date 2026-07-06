@@ -1,31 +1,46 @@
 import { Check, FileWarning, X, LayoutList, Code2, AlertTriangle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { createSimpleDiff } from '../lib/diff';
-import { writeProjectFile } from '../lib/tauriApi';
+import { applyProjectChanges, listProjectTree } from '../lib/tauriApi';
 import { useSakuraStore } from '../store/useSakuraStore';
+import { Modal } from './Modal';
 
 export function DiffApprovalPanel() {
-  const { project, pendingDiff, setPendingDiff, setStatus } = useSakuraStore();
+  const { project, pendingDiff, setPendingDiff, setStatus, openFile, updateOpenFileContent, markOpenFileSaved, setFileTree } = useSakuraStore();
   const [viewMode, setViewMode] = useState<'visual' | 'code'>('visual');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const apply = async () => {
     if (!project || !pendingDiff) return;
+    if (pendingDiff.changes.some((change) => change.action === 'delete')) {
+      setShowDeleteModal(true);
+      return;
+    }
+    await doApply();
+  };
+
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  const doApply = useCallback(async () => {
+    if (!project || !pendingDiff) return;
     try {
-      for (const change of pendingDiff.changes) {
-        if (change.action === 'delete') throw new Error('Delete changes are not implemented in MVP apply flow.');
-        await writeProjectFile({
-          rootPath: project.rootPath,
-          relativePath: change.relativePath,
-          content: change.newContent || '',
-          createCheckpoint: true,
-        });
+      await applyProjectChanges({
+        rootPath: project.rootPath,
+        changes: pendingDiff.changes,
+        createCheckpoint: true,
+      });
+      const openFileChange = pendingDiff.changes.find((change) => openFile && change.relativePath === openFile.relativePath);
+      if (openFileChange?.action === 'modify' || openFileChange?.action === 'create') {
+        updateOpenFileContent(openFileChange.newContent || '');
+        markOpenFileSaved();
       }
+      const tree = await listProjectTree(project.rootPath);
+      setFileTree(tree);
       setPendingDiff(null);
       setStatus(`Applied ${pendingDiff.changes.length} change(s) with checkpoints.`);
     } catch (error) {
       setStatus((error as Error).message);
     }
-  };
+  }, [project, pendingDiff, openFile, updateOpenFileContent, markOpenFileSaved, setFileTree, setPendingDiff, setStatus]);
 
   if (!pendingDiff) {
     return (
@@ -101,10 +116,20 @@ export function DiffApprovalPanel() {
       )}
 
       <div className="button-row">
-        <button onClick={apply} style={{ flex: 1 }}><Check size={14} /> Apply Changes</button>
-        <button className="danger" onClick={() => setPendingDiff(null)}><X size={14} /> Reject</button>
+        <button onClick={apply} style={{ flex: 1 }} aria-label="Apply changes"><Check size={14} /> Apply Changes</button>
+        <button className="danger" onClick={() => setPendingDiff(null)} aria-label="Reject changes"><X size={14} /> Reject</button>
       </div>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => { setShowDeleteModal(false); doApply(); }}
+        title="Apply with Deletions"
+        variant="danger"
+        confirmLabel="Apply with Checkpoint"
+      >
+        <p>This batch includes delete operations. Apply it with a checkpoint?</p>
+      </Modal>
     </section>
   );
 }
-

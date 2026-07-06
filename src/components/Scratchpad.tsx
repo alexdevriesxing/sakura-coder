@@ -6,9 +6,21 @@ interface ScratchpadProps {
   onSave?: (content: string) => void;
 }
 
-export function Scratchpad({ initialContent = '', onSave }: ScratchpadProps) {
-  const [content, setContent] = useState(initialContent);
-  const [history, setHistory] = useState<string[]>([initialContent]);
+const STORAGE_KEY = 'sakura-scratchpad';
+
+function loadScratchpad(): string {
+  try {
+    return localStorage.getItem(STORAGE_KEY) ?? '';
+  } catch { return ''; }
+}
+
+function saveScratchpad(content: string) {
+  try { localStorage.setItem(STORAGE_KEY, content); } catch { /* quota */ }
+}
+
+export function Scratchpad({ initialContent, onSave }: ScratchpadProps) {
+  const [content, setContent] = useState(() => initialContent ?? loadScratchpad());
+  const [history, setHistory] = useState<string[]>([content]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -22,8 +34,16 @@ export function Scratchpad({ initialContent = '', onSave }: ScratchpadProps) {
     }
   }, [content]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveScratchpad(content);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [content]);
+
   const save = () => {
     onSave?.(content);
+    saveScratchpad(content);
     setIsDirty(false);
   };
 

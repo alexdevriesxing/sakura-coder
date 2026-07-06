@@ -1,115 +1,97 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
-test.describe('Sakura Coder App', () => {
-  test.beforeEach(async ({ page }) => {
+async function mockTauri(page: Page) {
+  await page.evaluate(() => {
+    const project = {
+      name: 'Sakura Smoke Project',
+      rootPath: 'C:/Projects/sakura-smoke',
+      template: 'blank',
+      workflowId: 'general-coding',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    (window as any).__TAURI_INTERNALS__ = {
+      invoke: async (cmd: string, args: any = {}) => {
+        if (cmd.includes('plugin:dialog')) return 'C:/Projects/sakura-smoke';
+        if (cmd === 'load_project' || cmd === 'create_project') return project;
+        if (cmd === 'list_project_tree') return [{
+          name: 'src',
+          path: 'C:/Projects/sakura-smoke/src',
+          relativePath: 'src',
+          kind: 'directory',
+          children: [{
+            name: 'App.tsx',
+            path: 'C:/Projects/sakura-smoke/src/App.tsx',
+            relativePath: 'src/App.tsx',
+            kind: 'file',
+          }],
+        }];
+        if (cmd === 'git_status') return { branch: 'main', clean: true, files: [] };
+        if (cmd === 'list_checkpoints') return ['20260505_smoke'];
+        if (cmd === 'list_rules') return [{ id: 'agents-md', scope: '/', relativePath: 'AGENTS.md', content: 'Plan first.', enabled: true }];
+        if (cmd === 'list_memories') return [];
+        if (cmd === 'list_mcp_servers') return [];
+        if (cmd === 'list_background_jobs') return [];
+        if (cmd === 'run_preview_check') {
+          return {
+            id: 'preview-smoke',
+            url: 'http://127.0.0.1:5173',
+            status: 'inspected',
+            notes: ['Detected dev server for smoke test.'],
+            screenshotPath: null,
+            createdAt: new Date().toISOString(),
+          };
+        }
+        if (cmd === 'get_diagnostics') return [];
+        if (cmd === 'build_project_context') {
+          return {
+            files: [],
+            fileTreeSummary: ['src/App.tsx'],
+            searchResults: [],
+            memory: null,
+            diffSummaries: [],
+            truncated: false,
+            droppedFiles: [],
+          };
+        }
+        return args ?? null;
+      },
+      convertFileSrc: (path: string) => path,
+      transformCallback: () => 1,
+      unregisterCallback: () => {},
+    };
+  });
+}
+
+test.describe('Sakura Coder shell', () => {
+  test('loads the launcher without crashing', async ({ page }) => {
     await page.goto('/');
-  });
-
-  test('loads main page without crash', async ({ page }) => {
-    await expect(page.locator('body')).toBeVisible();
-    const title = await page.title();
-    console.log('Page title:', title);
-  });
-
-  test('shows project launcher UI', async ({ page }) => {
     await expect(page.getByText('Sakura Coder')).toBeVisible();
-    await expect(page.getByText('Project root path')).toBeVisible();
-    await expect(page.getByText('Mission Control')).toBeVisible();
+    await expect(page.getByText('What would you like to build?')).toBeVisible();
+    await expect(page.getByRole('button', { name: /OPEN LOCAL WORKSPACE/i })).toBeVisible();
   });
 
-  test('shows mission control panel', async ({ page }) => {
-    await expect(page.getByText('Mission Control')).toBeVisible();
-    await expect(page.getByText('Project')).toBeVisible();
-    await expect(page.getByText('Workflow')).toBeVisible();
-    await expect(page.getByText('Mode')).toBeVisible();
-  });
-
-  test('shows approval mode buttons', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /YOLO/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Step/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Auto/i })).toBeVisible();
-  });
-
-  test('shows run to complete button', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /Run to Complete/i })).toBeVisible();
-  });
-
-  test('shows file tree panel', async ({ page }) => {
-    await expect(page.getByText('File Tree')).toBeVisible();
-    await expect(page.getByText('No project loaded')).toBeVisible();
-  });
-
-  test('shows asset studio panel', async ({ page }) => {
-    await expect(page.getByText('Asset Studio')).toBeVisible();
-    await expect(page.getByText('Generate images using Flux')).toBeVisible();
-  });
-
-  test('shows audio studio panel', async ({ page }) => {
-    await expect(page.getByText('Audio Studio')).toBeVisible();
-    await expect(page.getByText('Generate audio using Minimax')).toBeVisible();
-  });
-
-  test('has input for project root path', async ({ page }) => {
-    const input = page.getByLabel('Project root path');
-    await expect(input).toBeVisible();
-    await expect(input).toHaveValue('C:/Projects/sakura-demo');
-  });
-
-  test('has input for project name', async ({ page }) => {
-    const input = page.getByLabel('Project name');
-    await expect(input).toBeVisible();
-    await expect(input).toHaveValue('Sakura Demo Project');
-  });
-
-  test('has create project button', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /Create Project/i })).toBeVisible();
-  });
-
-  test('has open existing button', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /Open Existing/i })).toBeVisible();
+  test('mode tabs can switch behavior', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Build', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Build', exact: true })).toHaveClass(/active/);
   });
 });
 
-test.describe('Mode Tabs', () => {
-  test.beforeEach(async ({ page }) => {
+test.describe('Preview and agentic-core smoke', () => {
+  test('opens a mocked workspace and inspects preview state', async ({ page }) => {
     await page.goto('/');
-  });
+    await mockTauri(page);
+    await page.getByRole('button', { name: /OPEN LOCAL WORKSPACE/i }).click();
 
-  test('shows all mode tabs', async ({ page }) => {
-    const modes = ['ask', 'plan', 'build', 'debug', 'asset', 'release'];
-    for (const mode of modes) {
-      await expect(page.getByRole('button', { name: new RegExp(mode, 'i') })).toBeVisible();
-    }
-  });
+    await expect(page.locator('.brand-lockup').getByText('Sakura Smoke Project')).toBeVisible();
+    await expect(page.getByText('Sakura Agent')).toBeVisible();
+    await expect(page.getByText('Agentic Core')).toBeVisible();
 
-  test('can click build mode', async ({ page }) => {
-    await page.getByRole('button', { name: /build/i }).click();
-    await expect(page.getByRole('button', { name: /build/i })).toHaveClass(/active/);
-  });
-
-  test('can click asset mode', async ({ page }) => {
-    await page.getByRole('button', { name: /asset/i }).click();
-    await expect(page.getByRole('button', { name: /asset/i })).toHaveClass(/active/);
-  });
-});
-
-test.describe('Responsive Layout', () => {
-  test('works on desktop viewport', async ({ page }) => {
-    await page.setViewportSize({ width: 1400, height: 900 });
-    await page.goto('/');
-    await expect(page.locator('.workspace-grid')).toBeVisible();
-  });
-
-  test('shows layout on smaller viewports', async ({ page }) => {
-    await page.setViewportSize({ width: 1000, height: 700 });
-    await page.goto('/');
-    await expect(page.locator('.launcher')).toBeVisible();
-  });
-});
-
-test.describe('Error Handling', () => {
-  test('handles empty page', async ({ page }) => {
-    await page.goto('/nonexistent');
-    await expect(page.locator('body')).toBeVisible();
+    const core = page.locator('.intelligence-panel');
+    await core.getByRole('button', { name: /Preview/i }).click();
+    await core.getByRole('button', { name: /Inspect Preview/i }).click();
+    await expect(core.getByText('http://127.0.0.1:5173')).toBeVisible();
   });
 });

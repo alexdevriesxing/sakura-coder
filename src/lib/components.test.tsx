@@ -12,13 +12,13 @@ describe('CommandPalette', () => {
 
   it('is hidden by default', () => {
     render(<CommandPalette />);
-    expect(screen.queryByPlaceholderText(/Search commands/)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/command/)).not.toBeInTheDocument();
   });
 
   it('shows when Ctrl+K is pressed', () => {
     render(<CommandPalette />);
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
-    expect(screen.getByPlaceholderText(/Search commands/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/command/)).toBeInTheDocument();
   });
 });
 

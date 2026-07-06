@@ -9,7 +9,17 @@
     "core:default",
     "opener:default",
     "dialog:default",
-    "fs:default",
-    "shell:allow-open"
+    "shell:allow-open",
+    "http:default",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "https://qwen-coder-worker.alexdevriesxing.workers.dev/**" },
+        { "url": "https://flux-image-worker.alexdevriesxing.workers.dev/**" },
+        { "url": "https://minimax-music-worker.alexdevriesxing.workers.dev/**" }
+      ]
+    },
+    "core:event:default",
+    "core:path:default"
   ]
 }

@@ -48,6 +48,38 @@ Minimax Music Worker:
 https://minimax-music-worker.alexdevriesxing.workers.dev/
 ```
 
+## LLM Waterfall
+
+The Qwen Coder Worker routes text/code requests through a free-only waterfall:
+
+1. OpenRouter `:free` models
+2. Cloudflare Workers AI through the configured AI Gateway
+
+Set OpenRouter on the worker, not in the frontend:
+
+```bash
+wrangler secret put OPENROUTER_API_KEY
+```
+
+Audio generation can use a server-side Minimax key or a session-only BYOK key
+entered in Sakura:
+
+```bash
+wrangler secret put MINIMAX_API_KEY
+```
+
+To configure deployed worker secrets from local `.env` values without printing
+the values:
+
+```bash
+npm run workers:configure
+npm run workers:probe
+npm run workers:probe:full
+```
+
+When all free routes are unavailable or quota-exhausted, Sakura fails closed with
+route metadata instead of switching to paid usage.
+
 ## Run locally
 
 ```bash
@@ -93,6 +125,8 @@ Sakura Coder enforces:
 - **Diff approval**: Required for Build mode edits
 - **Safe command gate**: Blocks destructive commands
 - **Secret blocking**: `.env`, credentials blocked
+- **Free-only LLM routing**: OpenRouter/Cloudflare waterfall stops before paid-capable fallback
+- **Repo context bundle**: the agent sees the open file, priority configs/docs, file map, search hits, recent diffs, memory, assets, and visual annotations within token caps
 
 ## Memory
 
